@@ -1,0 +1,71 @@
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    margin-top: 200px;
+    box-sizing: border-box;
+    font-family: Tahoma, Helvetica, sans-serif;
+}
+.menu{
+    background-color: pink;
+    padding: 100px 200px;
+    border-radius: 10px;
+    box-sizing: border-box;
+
+}
+.logo{
+    display: flex;
+    margin-top: -50px;
+}
+.input{
+    border: none;
+    padding: 10px 20px;
+    border-radius: 10px;
+    justify-content: center;
+    align-items: center;
+    font-size: 15px;
+}
+
+.button_add{
+    background-color: #2994e1;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    margin-left: 10px;
+}
+
+
+.img{
+    /*padding-top: -100px;*/
+}
+
+.container img {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+}
+
+.view_task{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    padding: 30px 50px;
+    border-radius: 70px;
+    border: none;
+    cursor: pointer;
+}
+
+.view_task_button{
+    background-color: #2994e1;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+
+}
