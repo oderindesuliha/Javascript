@@ -2,33 +2,54 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>COPLANR</title>
     <link rel="stylesheet" href="style.css">
-    <title>JavaScript DOM </title>
-    <script src="to-do_list.js" defer></script>
 </head>
 <body>
-    <header>
-        <div class = "container">
-                    <div class = "menu">
-                        <div class = "logo">
-                            <img src = "images/logopj_prev_ui.png" alt="" class="img">
-                            <h1>To-Do List</h1>
-                        </div>
-
-                        <div class = "search">
-                            <input type="text" placeholder="Add a task..." class="input" />
-                            <button onclick="add" class="button_add">Add </button>
-                        </div>
-                <div class = "view_task">
-                    <button class="view_task_button">View all task</button>
-                </div>
-
-            </div>
-
+<div class="container">
+    <div class="menu">
+        <div class="logo">
+            <img src="images/4qpr3y4w-removebg-preview.png" alt="CoPlanr Logo" class="img">
         </div>
-    </header>
-
-
-
+        <h1>COPLANR To-Do List</h1>
+        <div id="loginForm" class="auth-form">
+            <input type="text" id="loginUserName" class="input" placeholder="Username">
+            <input type="password" id="loginPassword" class="input" placeholder="Password">
+            <button class="button_add" onclick="login()">Login</button>
+            <span class="toggle-link" onclick="showRegister()">Don't have an account? Register here</span>
+        </div>
+        <div id="registerForm" class="auth-form" >
+            <input type="text" id="registerFirstName" class="input" placeholder="First Name">
+            <input type="text" id="registerLastName" class="input" placeholder="Last Name">
+            <input type="text" id="registerUserName" class="input" placeholder="Username">
+            <input type="email" id="registerEmail" class="input" placeholder="Email">
+            <input type="password" id="registerPassword" class="input" placeholder="Password">
+<!--            <input type="password" id="confirmPassword" class="input" placeholder="Confirm Password">-->
+            <button class="button_add" onclick="register()">Register</button>
+            <span class="toggle-link" onclick="showLogin()">Already have an account? Login here</span>
+        </div>
+    </div>
+    <div id="todoPage" style="display: none;">
+        <h2 id="welcomeMessage" style="color: #1e90ff; text-align: center; margin: 20px 0;"></h2>
+        <div class="task-input-container">
+            <input type="text" id="taskInput" class="input" placeholder="Add a new task">
+            <button class="button_add" onclick="addTask()">Add</button>
+            <button class="button_add logout-button" onclick="logout()">Logout</button>
+        </div>
+        <div class="view_task">
+            <div id="taskGrid" class="task-grid">
+                <div class="task-header">Task</div>
+                <div class="task-header">To Start</div>
+                <div class="task-header">In Progress</div>
+                <div class="task-header">Blocked</div>
+                <div class="task-header">Done</div>
+                <div id="taskRows"></div>
+            </div>
+            <button class="view_task_button" onclick="viewAllTasks()">View all task</button>
+        </div>
+    </div>
+</div>
+<script src="to-do_list.js"></script>
 </body>
 </html>
