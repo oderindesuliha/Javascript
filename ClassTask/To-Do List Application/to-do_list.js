@@ -148,7 +148,6 @@ const addTask = async () => {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${getAuthToken()}`,
             },
             body: JSON.stringify(taskData),
         });
@@ -195,7 +194,6 @@ const editTask = async (taskId, currentTitle, currentDescription) => {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${getAuthToken()}`,
                     },
                     body: JSON.stringify({ id: taskId, title: newTitle, description: newDescription }),
                 });
