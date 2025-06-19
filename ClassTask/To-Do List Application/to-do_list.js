@@ -1,5 +1,4 @@
 const URL = 'http://localhost:8080/api';
-const currentUser = null;
 
 const getAuthToken = () => {
     return localStorage.getItem('authToken') || '';
@@ -10,15 +9,43 @@ const getCurrentUser = () => {
 };
 
 const showLogin = () => {
+    document.getElementById('authPage').style.display = 'block';
+    document.getElementById('loginMenu').style.display = 'block';
+    document.getElementById('registerMenu').style.display = 'none';
     document.getElementById('loginForm').classList.add('active');
     document.getElementById('registerForm').classList.remove('active');
     document.getElementById('todoPage').style.display = 'none';
+    document.getElementById('authButton').textContent = 'Login';
+    document.getElementById('search-input').style.display = 'none';
 };
 
 const showRegister = () => {
+    document.getElementById('authPage').style.display = 'block';
+    document.getElementById('registerMenu').style.display = 'block';
+    document.getElementById('loginMenu').style.display = 'none';
     document.getElementById('registerForm').classList.add('active');
     document.getElementById('loginForm').classList.remove('active');
     document.getElementById('todoPage').style.display = 'none';
+    document.getElementById('authButton').textContent = 'Login';
+    document.getElementById('search-input').style.display = 'none';
+};
+
+const showTodoPage = () => {
+    document.getElementById('authPage').style.display = 'none';
+    document.getElementById('todoPage').style.display = 'block';
+    document.getElementById('authButton').textContent = 'Logout';
+    document.getElementById('search-input').style.display = 'inline-block';
+};
+
+const toggleAuth = () => {
+    const user = getCurrentUser();
+    if (user.userName) {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('currentUser');
+        showLogin();
+    } else {
+        showLogin();
+    }
 };
 
 const register = async () => {
@@ -27,34 +54,27 @@ const register = async () => {
     const userName = document.getElementById('registerUserName').value.trim();
     const email = document.getElementById('registerEmail').value.trim();
     const password = document.getElementById('registerPassword').value.trim();
-    // const confirmPassword = document.getElementById('confirmPassword').value.trim();
 
     if (firstName && lastName && userName && email && password) {
-        if (password) {
-            try {
-                const response = await fetch(`${URL}/users/register`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ firstName: firstName, lastName: lastName, userName: userName, email: email, password: password }),
-                    body: JSON.stringify({ firstName: firstName, lastName: lastName, userName: userName, email: email, password: password }),
-                });
+        try {
+            const response = await fetch(`${URL}/users/register`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ firstName, lastName, userName, email, password }),
+            });
 
-                const data = await response.json();
-                console.log(data);
-                if (response.ok && data.success) {
-                    alert('Registration successful! Please login.');
-                    showLogin();
-                } else {
-                    alert(data.message || 'Registration failed. Username may already exist.');
-                }
-            } catch (error) {
-                alert('Error connecting to the server. Please try again later.');
-                console.error('Registration error:', error);
+            const data = await response.json();
+            if (response.ok && data.success) {
+                alert('Registration successful! Please login.');
+                showLogin();
+            } else {
+                alert(data.message || 'Registration failed. UserName may already exist.');
             }
-        } else {
-            alert('Passwords do not match.');
+        } catch (error) {
+            alert('Error connecting to the server. Please try again later.');
+            console.error('Registration error:', error);
         }
     } else {
         alert('Please fill in all fields.');
@@ -76,16 +96,14 @@ const login = async () => {
             });
 
             const data = await response.json();
-            console.log(data);
             if (response.ok) {
                 localStorage.setItem('authToken', data.token);
                 localStorage.setItem('currentUser', JSON.stringify({ userName, firstName: data.firstName, email: data.email, userId: data.userId }));
-                document.getElementById('loginForm').classList.remove('active');
-                document.getElementById('registerForm').classList.remove('active');
-                document.getElementById('todoPage').style.display = 'block';
-                document.getElementById('welcomeMessage').textContent = `CoPlanr, ${data.firstName}!`;
+                showTodoPage();
+                document.getElementById('welcomeMessage').textContent = `Welcome to COPLANR, ${userName}!`;
+                viewAllTasks();
             } else {
-                alert(data.message || 'Invalid username or password.');
+                alert(data.message || 'Invalid userName or password.');
             }
         } catch (error) {
             alert('Error connecting to the server. Please try again later.');
@@ -96,103 +114,82 @@ const login = async () => {
     }
 };
 
-const logout = async () => {
+const addTask = async () => {
+    const taskTitle = document.getElementById('addTaskTitle').value.trim();
+    const taskDescription = document.getElementById('addTaskDescription').value.trim();
+    const taskStatus = document.getElementById('addTaskStatus').value;
+
+    if (!taskTitle || !taskDescription) {
+        alert('Please enter both task title and description.');
+        return;
+    }
+
+    if (!['Pending', 'Not Done', 'In Progress', 'Completed'].includes(taskStatus)) {
+        alert('Invalid task status selected.');
+        return;
+    }
+
     const user = getCurrentUser();
-    const email = user.email || '';
-    const password = document.getElementById('loginPassword').value || '';
+    if (!user.userId) {
+        alert('User not authenticated. Please login again.');
+        showLogin();
+        return;
+    }
+
+    const taskData = {
+        title: taskTitle,
+        description: taskDescription,
+        status: taskStatus,
+        userId: user.userId
+    };
 
     try {
-        const response = await fetch(`${URL}/users/logout`, {
+        const response = await fetch(`${URL}/tasks`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${getAuthToken()}`,
             },
-            body: JSON.stringify({ email, password }),
+            body: JSON.stringify(taskData),
         });
 
         const data = await response.json();
-        if (response.ok) {
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('currentUser');
-            alert('Logged out successfully.');
-            showLogin();
+        if (response.ok && data.success) {
+            document.getElementById('addTaskTitle').value = '';
+            document.getElementById('addTaskDescription').value = '';
+            document.getElementById('addTaskStatus').value = 'Pending';
+            viewAllTasks();
         } else {
-            alert(data.message || 'Logout failed.');
+            console.error('Add task response:', data);
+            alert(data.message || 'Failed to add task. Please check the console for details.');
         }
     } catch (error) {
-        alert('Error connecting to the server. Please try again later.');
-        console.error('Logout error:', error);
+        console.error('Add task error:', error.message, error.stack);
+        alert('Error connecting to the server. Please ensure the backend is running and try again.');
     }
 };
 
-const addTask = async () => {
-    const taskInput = document.getElementById('taskInput').value.trim();
-    if (taskInput) {
-        try {
-            const user = getCurrentUser();
-            const response = await fetch(`${URL}/tasks`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${getAuthToken()}`,
-                },
-                body: JSON.stringify({ task: taskInput, status: 'To Start', userId: user.userId }),
-            });
+const editTask = async (taskId, currentTitle, currentDescription) => {
+    const inputTitle = document.createElement('input');
+    inputTitle.type = 'text';
+    inputTitle.className = 'input';
+    inputTitle.value = currentTitle;
+    inputTitle.maxLength = 100;
 
-            const data = await response.json();
-            if (response.ok && data.success) {
-                const task = data.data;
-                const taskRows = document.getElementById('taskRows');
-                const rowDiv = document.createElement('div');
-                rowDiv.className = 'task-row';
-                rowDiv.dataset.task = task.task;
-                rowDiv.dataset.taskId = task.id;
+    const inputDescription = document.createElement('textarea');
+    inputDescription.className = 'input';
+    inputDescription.value = currentDescription;
+    inputDescription.maxLength = 250;
+    inputDescription.style.resize = 'none';
+    inputDescription.style.height = '80px';
 
-                const taskCell = document.createElement('div');
-                taskCell.className = 'task-cell task-name';
-                taskCell.textContent = task.task;
-                taskCell.onclick = () => editTask(taskCell, task.id);
-                rowDiv.appendChild(taskCell);
-
-                for (let i = 0; i < 4; i++) {
-                    const cell = document.createElement('div');
-                    cell.className = 'task-cell';
-                    const checkbox = document.createElement('input');
-                    checkbox.type = 'checkbox';
-                    checkbox.checked = task.status === ['To Start', 'In Progress', 'Blocked', 'Done'][i];
-                    checkbox.onclick = () => updateTaskStatus(rowDiv, checkbox, task.id);
-                    cell.appendChild(checkbox);
-                    rowDiv.appendChild(cell);
-                }
-
-                taskRows.appendChild(rowDiv);
-                document.getElementById('taskInput').value = '';
-            } else {
-                alert(data.message || 'Failed to add task.');
-            }
-        } catch (error) {
-            alert('Error connecting to the server. Please try again later.');
-            console.error('Add task error:', error);
-        }
-    } else {
-        alert('Please enter a task.');
-    }
-};
-
-const editTask = async (taskCell, taskId) => {
-    const currentTask = taskCell.textContent;
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.value = currentTask;
-    input.className = 'input';
-    taskCell.textContent = '';
-    taskCell.appendChild(input);
-    input.focus();
-
-    const saveTask = async () => {
-        const newTask = input.value.trim();
-        if (newTask) {
+    const saveButton = document.createElement('button');
+    saveButton.className = 'button_add';
+    saveButton.textContent = 'Save';
+    saveButton.onclick = async () => {
+        const newTitle = inputTitle.value.trim();
+        const newDescription = inputDescription.value.trim();
+        if (newTitle && newDescription) {
             try {
                 const response = await fetch(`${URL}/tasks/update`, {
                     method: 'POST',
@@ -200,69 +197,132 @@ const editTask = async (taskCell, taskId) => {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${getAuthToken()}`,
                     },
-                    body: JSON.stringify({ id: taskId, task: newTask }),
+                    body: JSON.stringify({ id: taskId, title: newTitle, description: newDescription }),
                 });
 
                 const data = await response.json();
                 if (response.ok && data.success) {
-                    taskCell.textContent = newTask;
-                    taskCell.parentElement.dataset.task = newTask;
+                    viewAllTasks();
                 } else {
                     alert(data.message || 'Failed to update task.');
-                    taskCell.textContent = currentTask;
                 }
             } catch (error) {
                 alert('Error connecting to the server. Please try again later.');
                 console.error('Edit task error:', error);
-                taskCell.textContent = currentTask;
             }
         } else {
-            taskCell.textContent = currentTask;
+            alert('Please enter both task title and description.');
         }
     };
 
-    input.onblur = saveTask;
-    input.onkeypress = (e) => {
-        if (e.key === 'Enter') {
-            input.blur();
-        }
-    };
+    const taskCell = document.querySelector(`[data-task-id="${taskId}"] .task-name`);
+    taskCell.innerHTML = '';
+    taskCell.appendChild(inputTitle);
+    taskCell.appendChild(inputDescription);
+    taskCell.appendChild(saveButton);
+    inputTitle.focus();
 };
 
-const updateTaskStatus = async (rowDiv, selectedCheckbox, taskId) => {
-    const checkboxes = rowDiv.querySelectorAll('input[type="checkbox"]');
-    const statuses = ['To Start', 'In Progress', 'Blocked', 'Done'];
-    const selectedIndex = Array.from(checkboxes).indexOf(selectedCheckbox);
-    const newStatus = statuses[selectedIndex];
-
-    checkboxes.forEach((checkbox, index) => {
-        checkbox.checked = checkbox === selectedCheckbox;
-    });
-
+const deleteTask = async (taskId) => {
     try {
-        const response = await fetch(`${url}/tasks/update`, {
+        const response = await fetch(`${URL}/tasks/delete`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${getAuthToken()}`,
+            },
+            body: JSON.stringify({ id: taskId }),
+        });
+
+        const data = await response.json();
+        if (response.ok && data.success) {
+            viewAllTasks();
+        } else {
+            alert(data.message || 'Failed to delete task.');
+        }
+    } catch (error) {
+        alert('Error connecting to the server. Please try again later.');
+        console.error('Delete task error:', error);
+    }
+};
+
+const updateTaskStatus = async (taskId, newStatus) => {
+    try {
+        const response = await fetch(`${URL}/tasks/update`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
             },
             body: JSON.stringify({ id: taskId, status: newStatus }),
         });
 
         const data = await response.json();
-        if (!response.ok || !data.success) {
+        if (response.ok && data.success) {
+            viewAllTasks();
+        } else {
             alert(data.message || 'Failed to update task status.');
-            checkboxes.forEach((checkbox, index) => {
-                checkbox.checked = index === 0;
-            });
         }
     } catch (error) {
         alert('Error connecting to the server. Please try again later.');
         console.error('Update task status error:', error);
-        checkboxes.forEach((checkbox, index) => {
-            checkbox.checked = index === 0;
-        });
     }
+};
+
+const displayTasks = (tasks, searchTerm = '') => {
+    const taskRows = document.getElementById('taskRows');
+    taskRows.innerHTML = '';
+    let filteredTasks = tasks;
+    if (searchTerm) {
+        filteredTasks = tasks.filter(task =>
+            task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            task.description.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    }
+
+    filteredTasks.forEach(task => {
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'task-row';
+        rowDiv.dataset.taskId = task.id;
+
+        const titleCell = document.createElement('div');
+        titleCell.className = 'task-cell task-name';
+
+        const editButton = document.createElement('button');
+        editButton.className = 'edit';
+        editButton.textContent = 'Edit';
+        editButton.onclick = () => editTask(task.id, task.title, task.description);
+        titleCell.appendChild(editButton);
+
+        const deleteButton = document.createElement('button');
+        deleteButton.className = 'delete';
+        deleteButton.textContent = 'Delete';
+        deleteButton.onclick = () => deleteTask(task.id);
+        titleCell.appendChild(deleteButton);
+
+        const titleSpan = document.createElement('span');
+        titleSpan.textContent = task.title;
+        titleCell.appendChild(titleSpan);
+        rowDiv.appendChild(titleCell);
+
+        const statusCell = document.createElement('div');
+        statusCell.className = 'task-cell status-cell';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = task.status === 'Completed';
+        checkbox.onclick = () => updateTaskStatus(task.id, checkbox.checked ? 'Completed' : task.status === 'Completed' ? 'Not Done' : task.status);
+        statusCell.appendChild(checkbox);
+        const statusTag = document.createElement('span');
+        statusTag.className = `status-tag ${task.status.toLowerCase().replace(' ', '-')}`;
+        statusTag.textContent = task.status;
+        statusCell.appendChild(statusTag);
+        rowDiv.appendChild(statusCell);
+
+        const descriptionCell = document.createElement('div');
+        descriptionCell.className = 'task-cell';
+        descriptionCell.textContent = task.description;
+        rowDiv.appendChild(descriptionCell);
+
+        taskRows.appendChild(rowDiv);
+    });
 };
 
 const viewAllTasks = async () => {
@@ -272,43 +332,12 @@ const viewAllTasks = async () => {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${getAuthToken()}`,
             },
         });
 
         const data = await response.json();
         if (response.ok && data.success) {
-            const tasks = data.data;
-            const taskRows = document.getElementById('taskRows');
-            taskRows.innerHTML = '';
-            tasks.forEach(task => {
-                const rowDiv = document.createElement('div');
-                rowDiv.className = 'task-row';
-                rowDiv.dataset.task = task.task;
-                rowDiv.dataset.taskId = task.id;
-
-                const taskCell = document.createElement('div');
-                taskCell.className = 'task-cell task-name';
-                taskCell.textContent = task.task;
-                taskCell.onclick = () => editTask(taskCell, task.id);
-                rowDiv.appendChild(taskCell);
-
-                const statuses = ['To Start', 'In Progress', 'Blocked', 'Done'];
-                for (let i = 0; i < 4; i++) {
-                    const cell = document.createElement('div');
-                    cell.className = 'task-cell';
-                    const checkbox = document.createElement('input');
-                    checkbox.type = 'checkbox';
-                    checkbox.checked = task.status === statuses[i];
-                    checkbox.onclick = () => updateTaskStatus(rowDiv, checkbox, task.id);
-                    cell.appendChild(checkbox);
-                    rowDiv.appendChild(cell);
-                }
-
-                taskRows.appendChild(rowDiv);
-            });
-
-            alert('Tasks:\n' + tasks.map(t => `${t.task}: ${t.status || 'No Status'}`).join('\n'));
+            displayTasks(data.data, document.getElementById('search-input').value);
         } else {
             alert(data.message || 'Failed to fetch tasks.');
         }
@@ -318,4 +347,18 @@ const viewAllTasks = async () => {
     }
 };
 
-showLogin();
+document.getElementById('search-input').addEventListener('input', (e) => {
+    const user = getCurrentUser();
+    if (user.userName) {
+        viewAllTasks();
+    }
+});
+
+const user = getCurrentUser();
+if (user.userName) {
+    showTodoPage();
+    document.getElementById('welcomeMessage').textContent = `Welcome to COPLANR, ${user.userName}!`;
+    viewAllTasks();
+} else {
+    showLogin();
+}
